@@ -27,7 +27,7 @@ project (mrosconf)
 set (SRC_DIR "${PROJECT_SOURCE_DIR}/src")
 
 
-install (FILES ${SRC_DIR}/mrosconf DESTINATION bin)
+install (PROGRAMS ${SRC_DIR}/mrosconf DESTINATION bin)
 
 
 set (CPACK_GENERATOR "DEB")
@@ -35,7 +35,7 @@ set (CPACK_DEBIAN_PACKAGE_DEPENDS "bash, openssh-client")
 set (CPACK_DEBIAN_PACKAGE_MAINTAINER "Niels Penneman")
 set (CPACK_PACKAGE_VERSION_MAJOR 0)
 set (CPACK_PACKAGE_VERSION_MINOR 9)
-set (CPACK_PACKAGE_VERSION_PATCH 0)
+set (CPACK_PACKAGE_VERSION_PATCH 1)
 set (CPACK_DEBIAN_PACKAGE_RELEASE 1)
 
 include (CPack)
