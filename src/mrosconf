@@ -1,0 +1,91 @@
+#!/bin/bash
+#
+#  mrosconf: MikroTik RouterOS(TM) Configuration Downloader
+#  Copyright (C) 2020  Niels Penneman
+#
+#  This file is part of mrosconf.
+#
+#  mrosconf is free software: you can redistribute it and/or modify it under the
+#  terms of the GNU Affero General Public License as published by the Free
+#  Software Foundation, either version 3 of the License, or (at your option) any
+#  later version.
+#
+#  mrosconf is distributed in the hope that it will be useful, but WITHOUT ANY
+#  WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+#  A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+#  details.
+#
+#  You should have received a copy of the GNU Affero General Public License
+#  along with mrosconf. If not, see <https://www.gnu.org/licenses/>.
+#
+#  Mikrotik and RouterOS are trademarks of Mikrotikls SIA.
+
+set -e
+
+SCP='scp'
+SSH='ssh'
+SSH_OPTIONS=\
+'-o ChallengeResponseAuthentication=no '\
+'-o CheckHostIP=yes '\
+'-o ClearAllForwardings=yes '\
+'-o ConnectionAttempts=1 '\
+'-o ConnectTimeout=10 '\
+'-o ForwardAgent=no '\
+'-o ForwardX11=no '\
+'-o GatewayPorts=no '\
+'-o GlobalKnownHostsFile=/dev/null '\
+'-o GSSAPIAuthentication=no '\
+'-o GSSAPIDelegateCredentials=no '\
+'-o HostbasedAuthentication=no '\
+'-o KbdInteractiveAuthentication=no '\
+'-o NumberOfPasswordPrompts=1 '\
+'-o Protocol=2 '\
+'-o StrictHostKeyChecking=yes '\
+'-o VerifyHostKeyDNS=no '
+
+if [[ $# -ne 3 ]]; then
+  >&2 echo "Usage: $0: HOST_OR_IP EXPORT_FILE SYSTEM_BACKUP_FILE"
+  exit 1
+fi
+
+DEVICE="$1"
+EXPORT_FILE="$2"
+SYSTEM_BACKUP_FILE="$3"
+
+echo "Device:             $DEVICE"
+echo "Export file:        $EXPORT_FILE"
+echo "System backup file: $SYSTEM_BACKUP_FILE"
+
+[[ -z "${MIKROTIK_ROUTEROS_USERNAME}" ]] && MIKROTIK_ROUTEROS_USERNAME="$(whoami)"
+
+echo "Username:           $MIKROTIK_ROUTEROS_USERNAME"
+
+if [[ -n "${MIKROTIK_ROUTEROS_PASSWORD}" ]]; then
+  echo "Authentication:     password"
+  SCP="sshpass -e ${SCP}"
+  SSH="sshpass -e ${SSH}"
+  SSH_OPTIONS+='-o BatchMode=no -o PasswordAuthentication=yes -o PubkeyAuthentication=no '
+  export SSHPASS="${MIKROTIK_ROUTEROS_PASSWORD}"
+else
+  echo "Authentication:     public key"
+  echo "Identity file:      ${MIKROTIK_ROUTEROS_IDENTITY:-use default}"
+  SSH_OPTIONS+='-o BatchMode=yes -o PasswordAuthentication=no -o PubkeyAuthentication=yes '
+  if [[ -n "${MIKROTIK_ROUTEROS_IDENTITY}" ]]; then
+    SSH_OPTIONS+="-o 'IdentityFile=${MIKROTIK_ROUTEROS_IDENTITY}' -o IdentitiesOnly=yes "
+  fi
+fi
+
+SCP_OPTIONS="${SSH_OPTIONS}"
+SSH_OPTIONS="-nT ${SSH_OPTIONS}"
+
+REMOTE_EXPORT_FILE='config.rsc'
+REMOTE_SYSTEM_BACKUP_FILE='system.backup'
+REMOTE_COMMAND_BACKUP="/export file=${REMOTE_EXPORT_FILE}; "\
+"/system backup save dont-encrypt=yes name=${REMOTE_SYSTEM_BACKUP_FILE};"
+REMOTE_COMMAND_CLEANUP="/file remove ${REMOTE_EXPORT_FILE}; "\
+"/file remove ${REMOTE_SYSTEM_BACKUP_FILE};"
+
+${SSH} ${SSH_OPTIONS} "${MIKROTIK_ROUTEROS_USERNAME}@${DEVICE}" -- "${REMOTE_COMMAND_BACKUP}"
+${SCP} ${SCP_OPTIONS} "${MIKROTIK_ROUTEROS_USERNAME}@${DEVICE}:${REMOTE_EXPORT_FILE}" "${EXPORT_FILE}"
+${SCP} ${SCP_OPTIONS} "${MIKROTIK_ROUTEROS_USERNAME}@${DEVICE}:${REMOTE_SYSTEM_BACKUP_FILE}" "${SYSTEM_BACKUP_FILE}"
+${SSH} ${SSH_OPTIONS} "${MIKROTIK_ROUTEROS_USERNAME}@${DEVICE}" -- "${REMOTE_COMMAND_CLEANUP}"
