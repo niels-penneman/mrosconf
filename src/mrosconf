@@ -44,7 +44,7 @@ SSH_OPTIONS=\
 '-o VerifyHostKeyDNS=no '
 
 if [[ $# -ne 3 ]]; then
-  >&2 echo "Usage: $0: HOST_OR_IP EXPORT_FILE SYSTEM_BACKUP_FILE"
+  >&2 echo "Usage: mrosconf HOST_OR_IP EXPORT_FILE SYSTEM_BACKUP_FILE"
   exit 1
 fi
 
