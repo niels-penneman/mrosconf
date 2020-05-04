@@ -21,6 +21,10 @@ Authentication parameters must be set through environment variables:
   identity file (private key) to use for key-based authentication; when omitted,
   the SSH client will decide which key to use from the user's default key store.
 
+The RouterOS user must have access to at least the `ftp`, `policy`, `read`,
+`sensitive`, `ssh` and `test` policies. In order to clean up the backup files
+from the device the `write` policy is required.
+
 The script must be invoked as follows:
 
   mrosconf HOST_OR_IP EXPORT_FILE SYSTEM_BACKUP_FILE

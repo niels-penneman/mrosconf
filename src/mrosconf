@@ -43,8 +43,14 @@ SSH_OPTIONS=\
 '-o StrictHostKeyChecking=yes '\
 '-o VerifyHostKeyDNS=no '
 
+CLEANUP=0
+
+if [[ $1 == '--cleanup' ]]; then
+  CLEANUP=1
+  shift
+fi
 if [[ $# -ne 3 ]]; then
-  >&2 echo "Usage: mrosconf HOST_OR_IP EXPORT_FILE SYSTEM_BACKUP_FILE"
+  >&2 echo "Usage: mrosconf [--cleanup] HOST_OR_IP EXPORT_FILE SYSTEM_BACKUP_FILE"
   exit 1
 fi
 
@@ -85,7 +91,21 @@ REMOTE_COMMAND_BACKUP="/export file=${REMOTE_EXPORT_FILE}; "\
 REMOTE_COMMAND_CLEANUP="/file remove ${REMOTE_EXPORT_FILE}; "\
 "/file remove ${REMOTE_SYSTEM_BACKUP_FILE};"
 
-${SSH} ${SSH_OPTIONS} "${MIKROTIK_ROUTEROS_USERNAME}@${DEVICE}" -- "${REMOTE_COMMAND_BACKUP}"
+# Generate the backup files remotely
+echo "Creating backup..."
+RESULT=$(${SSH} ${SSH_OPTIONS} "${MIKROTIK_ROUTEROS_USERNAME}@${DEVICE}" -- "${REMOTE_COMMAND_BACKUP}")
+if ! [[ "${RESULT}" =~ ^'Configuration backup saved'[[:space:]]*$ ]]; then
+  >&2 echo "Error: backup failed: ${RESULT}"
+  exit 1
+fi
+
+# Transfer the backup files
+echo "Downloading: ${EXPORT_FILE}"
 ${SCP} ${SCP_OPTIONS} "${MIKROTIK_ROUTEROS_USERNAME}@${DEVICE}:${REMOTE_EXPORT_FILE}" "${EXPORT_FILE}"
+echo "Downloading: ${SYSTEM_BACKUP_FILE}"
 ${SCP} ${SCP_OPTIONS} "${MIKROTIK_ROUTEROS_USERNAME}@${DEVICE}:${REMOTE_SYSTEM_BACKUP_FILE}" "${SYSTEM_BACKUP_FILE}"
-${SSH} ${SSH_OPTIONS} "${MIKROTIK_ROUTEROS_USERNAME}@${DEVICE}" -- "${REMOTE_COMMAND_CLEANUP}"
+
+# Clean up on remote side
+[[ ${CLEANUP} -eq 0 ]] || ( echo "Cleaning up..."; ${SSH} ${SSH_OPTIONS} "${MIKROTIK_ROUTEROS_USERNAME}@${DEVICE}" -- "${REMOTE_COMMAND_CLEANUP}" )
+
+echo "Success"
