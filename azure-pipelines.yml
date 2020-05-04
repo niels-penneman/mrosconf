@@ -1,0 +1,25 @@
+trigger:
+  batch: true
+  branches:
+    include:
+    - master
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+workspace:
+  clean: all
+
+steps:
+- script: |
+    set -e
+    mkdir build
+    cd build
+    cmake ..
+    make package
+    cp *.deb $(Build.ArtifactStagingDirectory)/
+  displayName: 'Build Debian package'
+  workingDirectory: $(Build.SourcesDirectory)
+- publish: '$(Build.ArtifactStagingDirectory)'
+  artifact: 'DebianPackage'
+  displayName: 'Publish artifact: Debian package'
