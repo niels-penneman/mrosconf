@@ -1,5 +1,7 @@
 # MikroTik RouterOS Configuration Downloader
 
+[![Build Status](https://dev.azure.com/NielsPenneman/HomeAutomation/_apis/build/status/mrosconf?branchName=master)](https://dev.azure.com/NielsPenneman/HomeAutomation/_build/latest?definitionId=2&branchName=master)
+
 Downloads the configuration of Mikrotik RouterOS devices for backup purposes
 over SSH.
 
